@@ -1,6 +1,7 @@
 import mysql.connector
 from PIL import Image
 from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon
 
 def main():
 
@@ -41,7 +42,7 @@ def main():
 	
 		print( create_shape( animal ) )
 	
-	#	print( "\n\n" )	
+		print( "\n" )	
 	
 	# display the information of the animals that are within the boundaries
 	#mycursor.execute( "SELECT * FROM iucn LIMIT %d" % ( ROWS_TO_ACCESS ) )
@@ -91,9 +92,6 @@ def create_polygon( currentShape ):
 			listOf_shapesPoints.append( shapeList[ listIndex ].split( "," ) )
 			listIndex += 1
 			
-	print( "length of polygon sections", end= " " )
-	print( len( shapeList )) 
-			
 	# Convert the list of coordinate pair strings into floats
 	# Loop through each shape in the list 
 	for shape in listOf_shapesPoints:
@@ -121,7 +119,7 @@ def create_polygon( currentShape ):
 		polygon = Polygon( linearRing, listOf_shapesPoints )
 			
 	# return our polygon
-	return polygon.bounds
+	return polygon
 	
 def create_multi_polygon( currentShape ):
 	
@@ -129,28 +127,25 @@ def create_multi_polygon( currentShape ):
 	shapeString = currentShape.strip( "MULTIPOLYGON(" ).strip( ")" )
 	listOfPolygons = shapeString.split( "))" )
 		
-	for index in range( 0, len( listOfPolygons) ):
-		#print( listOfPolygons[ index ] )
-		listOfPolygons = create_polygon( listOfPolygons[ index ] )
+	for index in range( 0, len( listOfPolygons ) ):
+		listOfPolygons[ index ] = create_polygon( listOfPolygons[ index ] )
 			
-	#multi_polygon = MultiPolygon( listOfPolygons )
-	print( "multipolygon polygon count" )
-	print( len( listOfPolygons ) )
+	multi_polygon = MultiPolygon( listOfPolygons )
 	
-	return "		multi" 
+	return multi_polygon
 
 def create_shape( currentShape ):
 	if "MULTIPOLYGON" in currentShape[ 0 ]:
 		print( "	multi" )
 		#return( " " )
-		return create_multi_polygon( currentShape[ 0 ] )
+		return create_multi_polygon( currentShape[ 0 ] ).bounds
 		
 		
 	elif "POLYGON" in currentShape[ 0 ]:
 		
 		print( " polygon" )
 		#return( " " )
-		return create_polygon( currentShape[ 0 ] )
+		return create_polygon( currentShape[ 0 ] ).bounds
 		
 	
 main()
