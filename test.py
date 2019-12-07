@@ -4,6 +4,8 @@ from shapely.geometry import Polygon
 
 def main():
 
+	ROWS_TO_ACCESS = 10
+
 	mydb = mysql.connector.connect(
 	
 		host="ecolocation.c09lpapromur.us-east-2.rds.amazonaws.com",
@@ -23,19 +25,26 @@ def main():
 		
 	# Get all of the mammals from the database into a list 
 	#mammal_list = []
-	#mycursor.execute( "SELECT * FROM iucn 100" )
+	#mycursor.execute( "SELECT * FROM iucn %d" %( ROWS_TO_ACCESS ) )
 	#for animal in mycursor:
 	#	mammal_list.append( get_animal_information( animal )
 		
 	# Get the shape files for each mammal 
 	#mammal_locations = []
-	mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT 7" )
+	mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT %d" % ( ROWS_TO_ACCESS ) )
+	index = 0
 	for animal in mycursor:
-	#	mammal_locations.append( create_polygon( animal ) )
+		
+		#mammal_locations.append( create_shape( animal ) )
+		#index += 1
+		#print( index, end=" " )
+	
 		print( create_shape( animal ) )
 	
+	#	print( "\n\n" )	
+	
 	# display the information of the animals that are within the boundaries
-	#mycursor.execute( "SELECT * FROM iucn LIMIT 100" )
+	#mycursor.execute( "SELECT * FROM iucn LIMIT %d" % ( ROWS_TO_ACCESS ) )
 	#display_mammal_information( mycursor, polygons, descriptors )
 # end main 	
 	
@@ -64,79 +73,84 @@ def display_mammal_information( listOfMammals, polygons, descriptors ):
 		
 def create_polygon( currentShape ):
 
+	listOf_shapesPoints = []
 	# Separate our list of coordinates into the shell and the holes
 	shapeList = currentShape.strip( "POLYGON((" ).split( ")" )
-	print( len( shapeList )) 
 	
 	# Delete all of the empty elements in the list 
 	listIndex = 0
 	for	i in range( 0, len( shapeList ) ):
 	
-		print( listIndex )
+		# If an element in the list is nothing, delete it
 		if len( shapeList[ listIndex ] ) == 0:
 			shapeList.pop( listIndex )
-			print( "deleted" )
+			
+		# If the element is valid, separate it into a list of coordinate pairs
 		else:		
+			shapeList[ listIndex ] = shapeList[ listIndex ].strip( ",((" )
+			listOf_shapesPoints.append( shapeList[ listIndex ].split( "," ) )
 			listIndex += 1
 			
+	print( "length of polygon sections", end= " " )
+	print( len( shapeList )) 
+			
+	# Convert the list of coordinate pair strings into floats
+	# Loop through each shape in the list 
+	for shape in listOf_shapesPoints:
 	
+		# Loop thorugh the points in each shape
+		for index in range( 0, len( shape ) ):
 			
-	#print( len( shapeList ) )
-		
-	# shapeString = currentShape[ 0 ].strip( "POLYGON((" ).strip( "))" )
-		
-	# Split the values into x and y coordinate pairs
-		#listOfPointTuples = shapeString.split( "," )
-		
-	#if( polygonPointCount <= 100 ):
+			# separate the x and y coordinates
+			tempCoors = shape[ index ].split()
 			
-	#	for x in listOfPointTuples:
-	#		print( x.split( "," ) )
-					
-	#	print("\n======================\n" )
-		
-	# Loop through each pair and create a float tuple
-	#for i in range( 0, len( listOfPointTuples ) ):
-		
-		# Convert our string coordinates to floats
-	#	tempList = listOfPointTuples[ i ].split()
-	#	xCoor = float( tempList[ 0 ] )
-	#	yCoor = float( tempList[ 1 ] )
+			# Convert the coordaintes to floats 
+			xCoor = float( tempCoors[ 0 ] )
+			yCoor = float( tempCoors[ 1 ] )
 			
-		# Put the floats into tuples
-	#	listOfPointTuples[ i ] = ( xCoor, yCoor )
+			# Save the now converted coordinates
+			shape[ index ] = ( xCoor, yCoor )
+	
+	# Save the actual shape file, leaving the holes in the listOf_shapesPoints list
+	linearRing = listOf_shapesPoints.pop( 0 )
 			
-	return "	polygon"
+	# Create our polygon 
+	if len( listOf_shapesPoints ) == 0:
+		polygon = Polygon( linearRing )
+	else:
+		polygon = Polygon( linearRing, listOf_shapesPoints )
+			
+	# return our polygon
+	return polygon.bounds
 	
 def create_multi_polygon( currentShape ):
 	
 	# Get rid of the cruft from the database string 
 	shapeString = currentShape.strip( "MULTIPOLYGON(" ).strip( ")" )
-	sectionCount = len( shapeString.split( "))" ) )
-	polygonPointCount = len( shapeString.split( "," ) )
-	
-	#if polygonPointCount <= 100:
-	#listOfPolygons = shapeString.split( "))" )
-	
+	listOfPolygons = shapeString.split( "))" )
 		
-	print()
-	for i in shapeString.split( "))" ):
-		print( i )
-		print()
+	for index in range( 0, len( listOfPolygons) ):
+		#print( listOfPolygons[ index ] )
+		listOfPolygons = create_polygon( listOfPolygons[ index ] )
 			
-	print( sectionCount )
+	#multi_polygon = MultiPolygon( listOfPolygons )
+	print( "multipolygon polygon count" )
+	print( len( listOfPolygons ) )
 	
-	return "	multi" 
-	
-	#if polygonPointCount <= 100:
-	#	listOfPointTuples = shapeString.split( ")" )
+	return "		multi" 
 
 def create_shape( currentShape ):
 	if "MULTIPOLYGON" in currentShape[ 0 ]:
+		print( "	multi" )
+		#return( " " )
 		return create_multi_polygon( currentShape[ 0 ] )
 		
+		
 	elif "POLYGON" in currentShape[ 0 ]:
-		return "Sure" #create_polygon( currentShape[ 0 ] )
+		
+		print( " polygon" )
+		#return( " " )
+		return create_polygon( currentShape[ 0 ] )
 		
 	
 main()
