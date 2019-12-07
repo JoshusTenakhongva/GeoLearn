@@ -28,10 +28,11 @@ def main():
 	#	mammal_list.append( get_animal_information( animal )
 		
 	# Get the shape files for each mammal 
-	mammal_locations = []
-	mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT 100" )
+	#mammal_locations = []
+	mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT 7" )
 	for animal in mycursor:
-		mammal_locations.append( create_polygon( animal ) )
+	#	mammal_locations.append( create_polygon( animal ) )
+		print( create_shape( animal ) )
 	
 	# display the information of the animals that are within the boundaries
 	#mycursor.execute( "SELECT * FROM iucn LIMIT 100" )
@@ -63,25 +64,36 @@ def display_mammal_information( listOfMammals, polygons, descriptors ):
 		
 def create_polygon( currentShape ):
 
+	# Separate our list of coordinates into the shell and the holes
+	shapeList = currentShape.strip( "POLYGON((" ).split( ")" )
+	print( len( shapeList )) 
 	
-	# Get rid of the cruft from the database string 
-	if "MULTIPOLYGON" in currentShape[ 0 ]:
-		shapeString = currentShape[ 0 ].strip( "MULTIPOLYGON" )
-		polygonPointCount = len( shapeString.split( "," ) )
-		listOfPointTuples = shapeString.split( ")" )
+	# Delete all of the empty elements in the list 
+	listIndex = 0
+	for	i in range( 0, len( shapeList ) ):
+	
+		print( listIndex )
+		if len( shapeList[ listIndex ] ) == 0:
+			shapeList.pop( listIndex )
+			print( "deleted" )
+		else:		
+			listIndex += 1
+			
+	
+			
+	#print( len( shapeList ) )
 		
-	#elif "POLYGON" in currentShape[ 0 ]:
-	#	shapeString = currentShape[ 0 ].strip( "POLYGON((" ).strip( "))" )
+	# shapeString = currentShape[ 0 ].strip( "POLYGON((" ).strip( "))" )
 		
 	# Split the values into x and y coordinate pairs
 		#listOfPointTuples = shapeString.split( "," )
 		
-		if( polygonPointCount <= 100 ):
+	#if( polygonPointCount <= 100 ):
 			
-			for x in listOfPointTuples:
-				print( x.split( "," ) )
+	#	for x in listOfPointTuples:
+	#		print( x.split( "," ) )
 					
-			print("\n======================\n" )
+	#	print("\n======================\n" )
 		
 	# Loop through each pair and create a float tuple
 	#for i in range( 0, len( listOfPointTuples ) ):
@@ -94,7 +106,38 @@ def create_polygon( currentShape ):
 		# Put the floats into tuples
 	#	listOfPointTuples[ i ] = ( xCoor, yCoor )
 			
-	return True #Polygon( listOfPointTuples )
+	return "	polygon"
+	
+def create_multi_polygon( currentShape ):
+	
+	# Get rid of the cruft from the database string 
+	shapeString = currentShape.strip( "MULTIPOLYGON(" ).strip( ")" )
+	sectionCount = len( shapeString.split( "))" ) )
+	polygonPointCount = len( shapeString.split( "," ) )
+	
+	#if polygonPointCount <= 100:
+	#listOfPolygons = shapeString.split( "))" )
+	
+		
+	print()
+	for i in shapeString.split( "))" ):
+		print( i )
+		print()
+			
+	print( sectionCount )
+	
+	return "	multi" 
+	
+	#if polygonPointCount <= 100:
+	#	listOfPointTuples = shapeString.split( ")" )
+
+def create_shape( currentShape ):
+	if "MULTIPOLYGON" in currentShape[ 0 ]:
+		return create_multi_polygon( currentShape[ 0 ] )
+		
+	elif "POLYGON" in currentShape[ 0 ]:
+		return "Sure" #create_polygon( currentShape[ 0 ] )
+		
 	
 main()
 
