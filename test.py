@@ -6,7 +6,8 @@ from shapely.geometry import Point
 
 def main():
 
-	ROWS_TO_ACCESS = 100
+	ROWS_TO_ACCESS = 2000
+	SEARCH_RADIUS = 2
 	getting_info = True
 
 	mydb = mysql.connector.connect(
@@ -29,20 +30,23 @@ def main():
 	animal_boundaries = []
 	animal_info = []
 	
-	mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT 100" )
+	#mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT %d" % (ROWS_TO_ACCESS) )
+	mycursor.execute( "SELECT AsText(boundaries) FROM iucn" )
 	for animal in mycursor:
 		animal_boundaries.append( create_shape( animal ) )
 	print( "done" )
 	
-	mycursor.execute( "SELECT * FROM iucn LIMIT 100" )
+	#mycursor.execute( "SELECT * FROM iucn LIMIT %d" % (ROWS_TO_ACCESS) )
+	mycursor.execute( "SELECT * FROM iucn" )
 	for animal in mycursor:
 		animal_info.append( animal )
 	print( "done" )
-	
-	animals_within_boundaries = []
-	
+
 	while getting_info:
-		response = input( "Enter longitude and latitude (comma separated) or \"exit\" to exit: " )
+	
+		animals_within_boundaries = []
+		print( "Enter longitude and latitude (comma separated) or \"exit\" to exit: " )
+		response = input()
 		if response.lower() == "exit":
 			getting_info = False
 		else:
@@ -51,25 +55,39 @@ def main():
 				latitude = float( response[ 0 ] )
 				longitude = float( response[ 1 ] )
 				
+				#count = 0
 				for index in range( 0, len( animal_boundaries ) ):
-					if checkCoordinates_in_animalInfo( latitude, longitude, animal_boundaries[ index ]):
+				
+					#count += 1
+					#print( count, end= " " )
+					
+					if checkCoordinates_in_animalInfo( latitude, longitude, animal_boundaries[ index ], SEARCH_RADIUS ):
 						animals_within_boundaries.append( animal_info[ index ] )
-						
+								
 				if len( animals_within_boundaries ) == 0:
 					print( "There were no mammals in that area" )
 				else:
 					display_mammal_information( animals_within_boundaries, descriptors )
+					print( "number of animals" )
+					print( len( animals_within_boundaries ) )
 			except ValueError: 
 				print( "Please input a valid latitude and longitude or \"Exit\" " )	
 	
 # end main 	
-def checkCoordinates_in_animalInfo( latitude, longitude, animal_boundary ):
+def checkCoordinates_in_animalInfo( latitude, longitude, animal_boundary, search_radius ):
 	
-	# create a point object from the latitude and longitude
-	point = Point( latitude, longitude )
+	# create a polygon object originating from the latitude and longitude
+	origin_point = Point( latitude, longitude )
 	
+	search_area = origin_point.buffer( search_radius )
+	
+	search_polygon = Polygon( list( search_area.exterior.coords ) )
+
 	# return if it's within the animal polygon
-	return point.within( animal_boundary )
+	if animal_boundary.is_valid == False:
+		return False
+	
+	return search_polygon.intersects( animal_boundary )
 
 def display_mammal_information( listOfMammals, descriptors ):
 
@@ -131,7 +149,7 @@ def create_polygon( currentShape ):
 			polygon = Polygon( linearRing, listOf_shapesPoints )
 				
 		# return our polygon
-		return polygon
+		return polygon.buffer( 0 )
 		
 	except ValueError:
 		return Polygon( [(0,0), (0,0), (0,0 )] )
@@ -161,7 +179,7 @@ def create_shape( currentShape ):
 			#print( " polygon" )
 			#return( " " )
 			return create_polygon( currentShape[ 0 ] )
-		
+	return Polygon( [(0,0), (0,0), (0,0)] )
 	
 main()
 
