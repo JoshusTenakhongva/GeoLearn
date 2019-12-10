@@ -5,7 +5,8 @@ from shapely.geometry import MultiPolygon
 
 def main():
 
-	ROWS_TO_ACCESS = 10
+	ROWS_TO_ACCESS = 100
+	getting_info = True
 
 	mydb = mysql.connector.connect(
 	
@@ -16,7 +17,7 @@ def main():
 		database="ecolocation_data"
 		)
 
-	mycursor = mydb.cursor()
+	mycursor = mydb.cursor( buffered=True )
 	
 	# Grab the descriptors of the mammals information from the database
 	descriptors = []
@@ -24,50 +25,61 @@ def main():
 	for x in mycursor: 
 		descriptors.append( x[ 0 ] )
 		
-	# Get all of the mammals from the database into a list 
-	#mammal_list = []
-	#mycursor.execute( "SELECT * FROM iucn %d" %( ROWS_TO_ACCESS ) )
-	#for animal in mycursor:
-	#	mammal_list.append( get_animal_information( animal )
-		
-	# Get the shape files for each mammal 
-	#mammal_locations = []
-	mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT %d" % ( ROWS_TO_ACCESS ) )
-	index = 0
+	animal_boundaries = []
+	animal_info = []
+	
+	mycursor.execute( "SELECT AsText(boundaries) FROM iucn" )
+	print( "starting" )
 	for animal in mycursor:
-		
-		#mammal_locations.append( create_shape( animal ) )
-		#index += 1
-		#print( index, end=" " )
+		animal_boundaries.append( animal )
+	print( "done" )
 	
-		print( create_shape( animal ) )
+	mycursor.execute( "SELECT * FROM iucn" )
+	print( "starting" )
+	for animal in mycursor:
+		animal_info.append( animal )
+	print( "done" )
 	
-		print( "\n" )	
+	animals_within_boundaries = []
 	
-	# display the information of the animals that are within the boundaries
-	#mycursor.execute( "SELECT * FROM iucn LIMIT %d" % ( ROWS_TO_ACCESS ) )
-	#display_mammal_information( mycursor, polygons, descriptors )
+	while getting_info:
+		response = input( "Enter longitude and latitude (comma separated) or \"exit\" to exit: " )
+		if response.lower() == "exit":
+			getting_info = False
+		else:
+			response = response.split( "," )
+			latitude = float( response[ 0 ] )
+			longitude = float( response[ 1 ] )
+			
+		for index in range( 0, len( animal_boundaries ) ):
+			if checkCoordinates_in_animalInfo(latitude, longitude, animal_boundaries[ index ]):
+				animals_within_boundaries.append( animal_info[ index ] )
+				
+		if len( animals_within_boundaries ) == 0:
+			print( "There were no mammals in that area" )
+		else:
+			display_mammal_information( animals_within_boundaries, descriptors )
+			#try:
+			
+			#except: 	
+	
 # end main 	
+def checkCoordinates_in_animalInfo( latitude, longitude, animal_boundary ):
 	
+	# create a point object from the latitude and longitude
+	point = Point( latitude, longitude )
 	
-def get_animal_information( animalList ):
-	return true
-	
+	# return if it's within the animal polygon
+	return point.within( animal_boundary )
 
+def display_mammal_information( listOfMammals, descriptors ):
 
-def display_mammal_information( listOfMammals, polygons, descriptors ):
-
-	polygonIndex = 0
-	
 	for x in listOfMammals: 
 		for index in range( 0, len( x )):
-			print( " - " + descriptors[ index ], end= ": " )
 			if index != 17:	
+				print( " - " + descriptors[ index ], end= ": " )
 				print( x[ index ] )
-			else:
-				print( polygons[ polygonIndex ].bounds )
 		
-		polygonIndex += 1
 		print( "\n====================\n" )
 		
 # end display_mammal_information
@@ -103,24 +115,28 @@ def create_polygon( currentShape ):
 			tempCoors = shape[ index ].split()
 			
 			# Convert the coordaintes to floats 
-			xCoor = float( tempCoors[ 0 ] )
-			yCoor = float( tempCoors[ 1 ] )
+			latitude = float( tempCoors[ 0 ] )
+			longitude = float( tempCoors[ 1 ] )
 			
 			# Save the now converted coordinates
-			shape[ index ] = ( xCoor, yCoor )
+			shape[ index ] = ( latitude, longitude )
 	
 	# Save the actual shape file, leaving the holes in the listOf_shapesPoints list
 	linearRing = listOf_shapesPoints.pop( 0 )
-			
-	# Create our polygon 
-	if len( listOf_shapesPoints ) == 0:
-		polygon = Polygon( linearRing )
-	else:
-		polygon = Polygon( linearRing, listOf_shapesPoints )
-			
-	# return our polygon
-	return polygon
 	
+	try:
+	# Create our polygon 
+		if len( listOf_shapesPoints ) == 0:
+			polygon = Polygon( linearRing )
+		else:
+			polygon = Polygon( linearRing, listOf_shapesPoints )
+				
+		# return our polygon
+		return polygon
+		
+	except ValueError:
+		return Polygon( [(0,0), (0,0), (0,0 )] )
+		
 def create_multi_polygon( currentShape ):
 	
 	# Get rid of the cruft from the database string 
@@ -135,17 +151,18 @@ def create_multi_polygon( currentShape ):
 	return multi_polygon
 
 def create_shape( currentShape ):
-	if "MULTIPOLYGON" in currentShape[ 0 ]:
-		print( "	multi" )
-		#return( " " )
-		return create_multi_polygon( currentShape[ 0 ] ).bounds
-		
-		
-	elif "POLYGON" in currentShape[ 0 ]:
-		
-		print( " polygon" )
-		#return( " " )
-		return create_polygon( currentShape[ 0 ] ).bounds
+	if currentShape[ 0 ] is not None: 
+		if "MULTIPOLYGON" in currentShape[ 0 ]:
+			print( "	multi" )
+			#return( " " )
+			return create_multi_polygon( currentShape[ 0 ] ).bounds
+			
+			
+		elif "POLYGON" in currentShape[ 0 ]:
+			
+			print( " polygon" )
+			#return( " " )
+			return create_polygon( currentShape[ 0 ] ).bounds
 		
 	
 main()
