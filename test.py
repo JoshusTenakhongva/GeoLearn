@@ -2,6 +2,7 @@ import mysql.connector
 from PIL import Image
 from shapely.geometry import Polygon
 from shapely.geometry import MultiPolygon
+from shapely.geometry import Point
 
 def main():
 
@@ -28,14 +29,12 @@ def main():
 	animal_boundaries = []
 	animal_info = []
 	
-	mycursor.execute( "SELECT AsText(boundaries) FROM iucn" )
-	print( "starting" )
+	mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT 100" )
 	for animal in mycursor:
-		animal_boundaries.append( animal )
+		animal_boundaries.append( create_shape( animal ) )
 	print( "done" )
 	
-	mycursor.execute( "SELECT * FROM iucn" )
-	print( "starting" )
+	mycursor.execute( "SELECT * FROM iucn LIMIT 100" )
 	for animal in mycursor:
 		animal_info.append( animal )
 	print( "done" )
@@ -47,21 +46,21 @@ def main():
 		if response.lower() == "exit":
 			getting_info = False
 		else:
-			response = response.split( "," )
-			latitude = float( response[ 0 ] )
-			longitude = float( response[ 1 ] )
-			
-		for index in range( 0, len( animal_boundaries ) ):
-			if checkCoordinates_in_animalInfo(latitude, longitude, animal_boundaries[ index ]):
-				animals_within_boundaries.append( animal_info[ index ] )
+			try: 
+				response = response.split( "," )
+				latitude = float( response[ 0 ] )
+				longitude = float( response[ 1 ] )
 				
-		if len( animals_within_boundaries ) == 0:
-			print( "There were no mammals in that area" )
-		else:
-			display_mammal_information( animals_within_boundaries, descriptors )
-			#try:
-			
-			#except: 	
+				for index in range( 0, len( animal_boundaries ) ):
+					if checkCoordinates_in_animalInfo( latitude, longitude, animal_boundaries[ index ]):
+						animals_within_boundaries.append( animal_info[ index ] )
+						
+				if len( animals_within_boundaries ) == 0:
+					print( "There were no mammals in that area" )
+				else:
+					display_mammal_information( animals_within_boundaries, descriptors )
+			except ValueError: 
+				print( "Please input a valid latitude and longitude or \"Exit\" " )	
 	
 # end main 	
 def checkCoordinates_in_animalInfo( latitude, longitude, animal_boundary ):
@@ -153,16 +152,15 @@ def create_multi_polygon( currentShape ):
 def create_shape( currentShape ):
 	if currentShape[ 0 ] is not None: 
 		if "MULTIPOLYGON" in currentShape[ 0 ]:
-			print( "	multi" )
+			#print( "	multi" )
 			#return( " " )
-			return create_multi_polygon( currentShape[ 0 ] ).bounds
+			return create_multi_polygon( currentShape[ 0 ] )
 			
 			
 		elif "POLYGON" in currentShape[ 0 ]:
-			
-			print( " polygon" )
+			#print( " polygon" )
 			#return( " " )
-			return create_polygon( currentShape[ 0 ] ).bounds
+			return create_polygon( currentShape[ 0 ] )
 		
 	
 main()
