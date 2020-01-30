@@ -23,7 +23,8 @@
   </div>
 </div>
 <script>
-/* When the user clicks on the button, 
+
+/* When the user clicks on the button,
 toggle between hiding and showing the dropdown content */
 function selectedTopic() {
   document.getElementById("topics").classList.toggle("show");
@@ -54,7 +55,7 @@ window.onclick = function(event) {
 </div>
 
 <script>
-/* When the user clicks on the button, 
+/* When the user clicks on the button,
 toggle between hiding and showing the dropdown content */
 function selectedDifficulty() {
   document.getElementById("difficulty").classList.toggle("show");
@@ -74,6 +75,71 @@ window.onclick = function(event) {
   }
 }
 </script>
+
+<!--Google Maps API for LAT LONG Selection-->
+<h3> Please select a location </h3>
+
+<div id="map"></div>
+<script>
+
+// Initialize and add the map, tries geolocation first
+function initMap() {
+	map = new google.maps.Map(document.getElementById('map'),
+						{center: {lat: 35.198284, lng: -111.651299}, zoom: 6});
+
+	marker = new google.maps.Marker({
+		map: map,
+		draggable: true,
+		animation: google.maps.Animation.DROP,
+		position: {lat: 35.198284, lng: -111.651299}
+	});
+	marker.addListener('click', toggleBounce);
+
+	infoWindow = new google.maps.InfoWindow;
+
+	// Try HTML5 geolocation
+	if(navigator.geolocation) {
+		navigator.geolocation.getCurrentPosition(function(position) {
+			var pos = {
+				lat: position.coords.latitude,
+				lng: position.coords.longitude
+			};
+
+			infoWindow.setPosition(pos);
+			infoWindow.setContent('Location found.');
+			infoWindow.open(map);
+			map.setCenter(pos);
+		}, function() {
+			handleLocationError(true, infoWindow, map.getCenter());
+		});
+	} else {
+		// Browser doesn't support geolocation
+		handleLocationError(false, infoWindow, map.getCenter());
+	}
+}
+
+function toggleBounce() {
+	if(marker.getAnimation() != null) {
+		marker.setAnimation(null);
+	} else {
+		marker.setAnimation(google.maps.Animation.BOUNCE);
+	}
+}
+
+function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+	infoWindow.setPosition(pos);
+	infoWindow.setContent(browserHasGeolocation ?
+												'Error: The Geolocation service failed.' :
+												'Error: Your browser does not support geolocation.');
+	infoWindow.open(map);
+}
+
+</script>
+<script async defer
+src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyC_CxX9I-xO4GPEsbXXgjovbbWcxPtNyWo&callback=initMap">
+</script>
+
+
 <form action="">
   Longitude:<br>
   <input type="text" name="Longitude">
@@ -82,13 +148,13 @@ window.onclick = function(event) {
   <input type="text" name="Latitude">
   <br><br>
   <input type="submit" value="Submit">
-</form> 
+</form>
 
 <form action="">
   Google Email:<br>
   <input type="text" name="email">
   <br><br>
   <input type="submit" value="Submit">
-</form> 
+</form>
 </body>
 </html>

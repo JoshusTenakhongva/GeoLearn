@@ -4,6 +4,13 @@
   height: 337px;
 }
 
+/* Set size of div element that contains Map */
+#map {
+  height: 400px;
+  width: 50%;
+  background-color: grey;
+}
+
 /* Add a black background color to the top navigation */
 .topnav {
   background-color: #ccf1fc;
