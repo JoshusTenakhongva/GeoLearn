@@ -1,5 +1,6 @@
 import mysql.connector
 import csv
+import sys
 from PIL import Image
 from shapely.geometry import Polygon
 from shapely.geometry import MultiPolygon
@@ -11,7 +12,7 @@ from pydrive.auth import GoogleAuth
 def main():
 
 	# constant for testing database executions 
-	ROWS_TO_ACCESS = 2000
+	ROWS_TO_ACCESS = 1
 	
 	# The size of the area that we want to search for 
 	# 1 about equals 70 miles 
@@ -20,6 +21,11 @@ def main():
 	# Our boolean that maintains the main loop 
 	getting_info = True
 
+	descriptors = []
+	animal_boundaries = []
+	animal_info = []
+	
+	'''
 	# connect to our database
 	mydb = mysql.connector.connect(
 	
@@ -32,7 +38,7 @@ def main():
 
 	# Create a cursor to look through the database
 	mycursor = mydb.cursor( buffered=True )
-	
+	 
 	# Grab the descriptors of the mammals information from the database
 	descriptors = []
 	mycursor.execute( "SHOW FIELDS FROM iucn" )
@@ -42,12 +48,17 @@ def main():
 	animal_boundaries = []
 	animal_info = []
 	
-	#mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT %d" % (ROWS_TO_ACCESS) )
+	
 	print( "starting animal boundary shape file creation" )
-	mycursor.execute( "SELECT AsText(boundaries) FROM iucn" )
+	mycursor.execute( "SELECT AsText(boundaries) FROM iucn LIMIT %d" % (ROWS_TO_ACCESS) )
+	
+	#mycursor.execute( "SELECT AsText(boundaries) FROM iucn" )
 	for animal in mycursor:
 		animal_boundaries.append( create_shape( animal ) )
 	print( "done" )
+	
+	
+	
 	
 	#mycursor.execute( "SELECT * FROM iucn LIMIT %d" % (ROWS_TO_ACCESS) )
 	mycursor.execute( "SELECT * FROM iucn" )
@@ -55,7 +66,30 @@ def main():
 	for animal in mycursor:
 		animal_info.append( animal )
 	print( "done" )
-
+	'''
+	
+	print( "beginning local db read" )
+	
+	with open( "biodiversity_mammal_db.csv" ) as csvFile: 
+		csv.field_size_limit( sys.maxsize )
+		csv_reader = csv.reader( csvFile )
+		
+		index = 0
+		
+		for row in csv_reader: 
+			if index == 0:
+				descriptors = row
+			else:
+				animal_info.append( row )
+				animal_boundaries.append( create_shape(animal_info[ index - 1 ][17]) )
+				
+			index += 1
+			
+			if index % 1000 == 0:
+				print( "read in " + str( index ) + " animals" )
+			
+	print( "finished reading database" )
+	
 	while getting_info:
 	
 		animals_within_boundaries = []
@@ -82,7 +116,7 @@ def main():
 					print( "There were no mammals in that area" )
 				else:
 					filename = write_mammal_info_to_csv( animals_within_boundaries, descriptors, latitude, longitude )
-					send_csv_to_drive( filename )
+					#send_csv_to_drive( filename )
 					#display_mammal_information( animals_within_boundaries, descriptors )
 					print( "number of animals" )
 					print( len( animals_within_boundaries ) )
@@ -172,7 +206,7 @@ def create_polygon( currentShape ):
 
 	listOf_shapesPoints = []
 	# Separate our list of coordinates into the shell and the holes
-	shapeList = currentShape.strip( "POLYGON((" ).split( ")" )
+	shapeList = currentShape.strip( "('POLYGON((" ).strip( "))',)" ).split( ")" )
 	
 	# Delete all of the empty elements in the list 
 	listIndex = 0
@@ -197,6 +231,8 @@ def create_polygon( currentShape ):
 			
 			# separate the x and y coordinates
 			tempCoors = shape[ index ].split()
+			
+			#print( str( index ) + ": " + tempCoors[ 0 ] + ", " + tempCoors[ 1 ] )
 			
 			# Convert the coordaintes to floats 
 			latitude = float( tempCoors[ 0 ] )
@@ -225,7 +261,7 @@ def create_polygon( currentShape ):
 def create_multi_polygon( currentShape ):
 	
 	# Get rid of the cruft from the database string 
-	shapeString = currentShape.strip( "MULTIPOLYGON(" ).strip( ")" )
+	shapeString = currentShape.strip( "'MULTIPOLYGON(((" ).strip( ")'," )
 	listOfPolygons = shapeString.split( "))" )
 		
 	for index in range( 0, len( listOfPolygons ) ):
@@ -235,6 +271,8 @@ def create_multi_polygon( currentShape ):
 	
 	return multi_polygon
 
+
+'''
 # Helper function that determines if a multi-polygon or polygon object needs to be created
 def create_shape( currentShape ):
 
@@ -255,6 +293,24 @@ def create_shape( currentShape ):
 			
 	# If there is an issue, return a polygon that is only a point 
 	return Polygon( [(0,0), (0,0), (0,0)] )
+	
+'''
+
+def create_shape( currentShape ):
+
+	if currentShape is not None: 
+
+		if "MULTIPOLYGON" in currentShape:
+		
+			return create_multi_polygon( currentShape )
+			
+		elif "POLYGON" in currentShape: 
+		
+			return create_polygon( currentShape )
+			
+		else:
+			return Polygon( [(0,0), (0,0), (0,0)] )
+			
 
 def send_csv_to_drive( fileName ):
 
