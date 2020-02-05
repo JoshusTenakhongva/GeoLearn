@@ -15,7 +15,7 @@ def main():
 	ROWS_TO_ACCESS = 1
 	
 	# The size of the area that we want to search for 
-	# 1 about equals 70 miles 
+	# 1 about equals 70 miles  (69.4)
 	SEARCH_RADIUS = 1
 	
 	# Our boolean that maintains the main loop 
@@ -116,7 +116,7 @@ def main():
 					print( "There were no mammals in that area" )
 				else:
 					filename = write_mammal_info_to_csv( animals_within_boundaries, descriptors, latitude, longitude )
-					#send_csv_to_drive( filename )
+					send_csv_to_drive( filename )
 					#display_mammal_information( animals_within_boundaries, descriptors )
 					print( "number of animals" )
 					print( len( animals_within_boundaries ) )
@@ -317,23 +317,33 @@ def send_csv_to_drive( fileName ):
 	print( 'begin file upload' )
 	
 	# Create google account authentication objects
-	gauth = GoogleAuth()
+	gauth = GoogleAuth('settings.yaml')
 	
-	print( 'client secrets 0' )
-	gauth.LocalWebserverAuth()
+	print( 'client secrets 1' )
 	
-	print( 'client secrets 1 ' )
+	gauth.LoadCredentialsFile( 'credentials.txt' )
+	
+	if gauth.credentials is None:
+	
+		print( 'local webserver branch' )
+		gauth.LocalWebserverAuth()
+		
+	elif gauth.access_token_expired:
+		print( 'refresh branch' )
+		gauth.Refresh()
+		
+	else:
+		print( 'authorize branch' )
+		gauth.Authorize()
+	
+	print( 'client secrets 2' )
+		
+	gauth.SaveCredentialsFile( "credentials.txt" )
+
 	
 	drive = GoogleDrive( gauth )
-	
-	print( 'client secrets 2 ' )
-	
 	upload_csv = drive.CreateFile({ fileName: fileName + '.csv' })
-	
-	print( 'client secrets 3' ) 
 	upload_csv.SetContentFile( fileName + '.csv' ) 
-	
-	print( 'client secrets 4' )
 	upload_csv.Upload() 
 	
 	print( 'file uploaded' )
