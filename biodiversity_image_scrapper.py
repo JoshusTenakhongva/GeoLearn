@@ -2,12 +2,12 @@
 # sudo apt-get install firefox-geckodriver
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-<<<<<<< HEAD
 import time
 
 # pip3 install Pillow
 from PIL import Image
 
+# These should just be from Python
 import io
 import requests
 import os
@@ -51,38 +51,47 @@ def retrieve_image_urls( search_query, webdriver ):
     # Variable that holds the number of images to fetch 
     number_of_images_to_fetch = 1
     index = 0
-    image_urls = []
 
+    # Scroll down the webpage to load more images
     scroll_down( webdriver )
 
+    # Save all of the html image elements from our google search
+    # 'rg_i' is the class name that the images have 
     image_elements = webdriver.find_elements_by_class_name( 'rg_i' )
 
+    # Check if the directory that we want to put our iamges in already exists
     if not os.path.exists( BASE_DIR + "/biodiversity/" + search_query ):
+
+        # If not, make that directory 
         os.mkdir( BASE_DIR + "/biodiversity/" + search_query )
 
     ''' 
     Loop through the image elements gathered and translate them to 
     URLs and then to actual images 
-    '''
-	
-    '''
-    temp = image_elements[ 0 ].get_attribute( 'data-iurl' )
-    temp_file = io.BytesIO( requests.get( temp ).content )
-    temp_image = Image.open( temp_file ).convert( 'RGB' )
-    print( "length " +  str( len( image_elements )) )
-    
-    '''
-    
+    '''    
     for index in range( number_of_images_to_fetch ):
-        print( "index" + str( index ) )
+
+        # Find the url of the image that we want tn download 
         image_url = image_elements[ index ].get_attribute( 'data-iurl' )
+
+        # Download this image as a BytesIO object 
         image_file = io.BytesIO( requests.get( image_url ).content )
+
+        # Convert our BytesIO object into an actual image
         image = Image.open( image_file ).convert( 'RGB' )
 
+        # Create the the name of this image we're downloaded
         image_name = '/image_' + str( index ) + '.jpg'
+
+        # Save the path that we want to save the image to
+        # The directory will be the same name as the search query 
         image_path = BASE_DIR + "/biodiversity/" + search_query + image_name
+
+        # Save the image 
         image.save( image_path, 'JPEG', quality=85 )
-        
+
+
+    # close the web browser
     webdriver.close()
 
 
@@ -94,7 +103,7 @@ def scroll_down( webdriver ):
     for i in range( 1 ):
         webdriver.execute_script( "scrollBy( 0, " + str(value) + ");" )
         value += 500
-        time.sleep( 1 )
+        time.sleep( .3 )
 
 
 if __name__ == "__main__":
