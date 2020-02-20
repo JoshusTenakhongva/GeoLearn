@@ -2,6 +2,7 @@
 # sudo apt-get install firefox-geckodriver
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+<<<<<<< HEAD
 import time
 
 # pip3 install Pillow
@@ -20,7 +21,6 @@ def main():
 
 def image_scraper( animal_search ):
 
-    ''' Connect to google images webpage ''' 
     # Create our google image search url template 
     search_url = "https://www.google.co.in/search?q={search_query}&source=lnms&tbm=isch"
 
@@ -95,14 +95,6 @@ def scroll_down( webdriver ):
         webdriver.execute_script( "scrollBy( 0, " + str(value) + ");" )
         value += 500
         time.sleep( 1 )
-
-'''
-
-'''
-#def download_images( elements, index ):
-    
-
-#def upload_image_directory(): 
 
 
 if __name__ == "__main__":
