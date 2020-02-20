@@ -64,19 +64,22 @@ def retrieve_image_urls( search_query, webdriver ):
     Loop through the image elements gathered and translate them to 
     URLs and then to actual images 
     '''
-
+	
+    '''
     temp = image_elements[ 0 ].get_attribute( 'data-iurl' )
     temp_file = io.BytesIO( requests.get( temp ).content )
-    temp_image = Image.open( temp_file.convert( 'RGB' ) )
+    temp_image = Image.open( temp_file ).convert( 'RGB' )
     print( "length " +  str( len( image_elements )) )
+    
+    '''
     
     for index in range( number_of_images_to_fetch ):
         print( "index" + str( index ) )
         image_url = image_elements[ index ].get_attribute( 'data-iurl' )
         image_file = io.BytesIO( requests.get( image_url ).content )
-        image = Image.open( image_file.convert( 'RGB' ))
+        image = Image.open( image_file ).convert( 'RGB' )
 
-        image_name = '/image' + index + '.jpg'
+        image_name = '/image_' + str( index ) + '.jpg'
         image_path = BASE_DIR + "/biodiversity/" + search_query + image_name
         image.save( image_path, 'JPEG', quality=85 )
         
